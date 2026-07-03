@@ -6,7 +6,7 @@ use crate::scanner::sg::SecurityGroup;
 pub fn generate(sgs: &[SecurityGroup], output: &mut String) -> Result<()> {
     for sg in sgs {
         let name = super::tf_name(&sg.name);
-        writeln!(output, "resource \"aws_security_group\" \"{}\" {{", name)?;
+        writeln!(output, "resource \"aws_security_group\" \"{}_{}\" {{", name, sg.vpc_id)?;
         writeln!(output, "  name        = \"{}\"", sg.name)?;
         writeln!(output, "  description = \"{}\"", sg.description)?;
         writeln!(output, "  vpc_id      = \"{}\"", sg.vpc_id)?;
@@ -24,7 +24,7 @@ pub fn generate(sgs: &[SecurityGroup], output: &mut String) -> Result<()> {
 
         // Ingress rules
         for (i, rule) in sg.ingress.iter().enumerate() {
-            writeln!(output, "resource \"aws_security_group_rule\" \"{}_ingress_{}\" {{", name, i)?;
+            writeln!(output, "resource \"aws_security_group_rule\" \"{}_ingress_{}_{}\" {{", name, i, rule.to_port)?;
             writeln!(output, "  type              = \"ingress\"")?;
             writeln!(output, "  from_port         = {}", rule.from_port)?;
             writeln!(output, "  to_port           = {}", rule.to_port)?;
@@ -45,7 +45,7 @@ pub fn generate(sgs: &[SecurityGroup], output: &mut String) -> Result<()> {
 
         // Egress rules
         for (i, rule) in sg.egress.iter().enumerate() {
-            writeln!(output, "resource \"aws_security_group_rule\" \"{}_egress_{}\" {{", name, i)?;
+            writeln!(output, "resource \"aws_security_group_rule\" \"{}_egress_{}\" {{", name, rule.to_port)?;
             writeln!(output, "  type              = \"egress\"")?;
             writeln!(output, "  from_port         = {}", rule.from_port)?;
             writeln!(output, "  to_port           = {}", rule.to_port)?;

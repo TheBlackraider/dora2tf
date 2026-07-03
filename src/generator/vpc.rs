@@ -3,9 +3,12 @@ use std::fmt::Write;
 use crate::scanner::vpc::VpcInfo;
 
 pub fn generate(vpcs: &[VpcInfo], output: &mut String) -> Result<()> {
+
+    let mut i = 0;
+
     for vpc in vpcs {
         let vname = super::tf_name(&vpc.name);
-        writeln!(output, "resource \"aws_vpc\" \"{}\" {{", vname)?;
+        writeln!(output, "resource \"aws_vpc\" \"{}_{}\" {{", vname, &i)?;
         writeln!(output, "  cidr_block = \"{}\"", vpc.cidr)?;
         writeln!(output, "  enable_dns_hostnames = true")?;
         writeln!(output, "  tags = {{")?;
@@ -21,7 +24,7 @@ pub fn generate(vpcs: &[VpcInfo], output: &mut String) -> Result<()> {
 
         for subnet in &vpc.subnets {
             let sname = super::tf_name(&subnet.name);
-            writeln!(output, "resource \"aws_subnet\" \"{}\" {{", sname)?;
+            writeln!(output, "resource \"aws_subnet\" \"{}_{}\" {{", sname, &subnet.availability_zone)?;
             writeln!(output, "  vpc_id            = aws_vpc.{}.id", vname)?;
             writeln!(output, "  cidr_block        = \"{}\"", subnet.cidr)?;
             writeln!(output, "  availability_zone = \"{}\"", subnet.availability_zone)?;
@@ -32,6 +35,8 @@ pub fn generate(vpcs: &[VpcInfo], output: &mut String) -> Result<()> {
             writeln!(output, "  }}")?;
             writeln!(output, "}}\n")?;
         }
+
+        i+= 1;
     }
 
     Ok(())

@@ -1,13 +1,14 @@
 use anyhow::Result;
 use std::fmt::Write;
 use crate::scanner::iam::IamRole;
+use urlencoding::decode;
 
 pub fn generate(roles: &[IamRole], output: &mut String) -> Result<()> {
     for role in roles {
         let rname = super::tf_name(&role.name);
         writeln!(output, "resource \"aws_iam_role\" \"{}\" {{", rname)?;
         writeln!(output, "  name = \"{}\"", role.name)?;
-        writeln!(output, "  assume_role_policy = jsonencode({})", role.assume_role_policy)?;
+        writeln!(output, "  assume_role_policy = {}", decode(&role.assume_role_policy).unwrap());
         writeln!(output, "  tags = {{")?;
         writeln!(output, "    ManagedBy = \"dora2tf\"")?;
         writeln!(output, "  }}")?;
