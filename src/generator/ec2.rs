@@ -5,7 +5,8 @@ use crate::scanner::ec2::Ec2Instance;
 
 pub fn generate(instances: &[Ec2Instance], output: &mut String) -> Result<()> {
     for inst in instances {
-        let name = super::tf_name(&inst.name);
+        let name = super::tf_unique_name(&inst.name, &inst.id);
+
         writeln!(output, "resource \"aws_instance\" \"{}\" {{", name)?;
         writeln!(output, "  ami           = \"{}\"", inst.ami)?;
         writeln!(output, "  instance_type = \"{}\"", inst.instance_type)?;
