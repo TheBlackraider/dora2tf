@@ -19,7 +19,8 @@ pub struct Resources {
 }
 
 /// Generate all .tf files from scanned resources.
-pub fn generate_all(resources: &Resources, output_dir: &Path) -> Result<()> {
+/// If `per_instance` is true, also creates instances/{name}.tf per EC2 instance.
+pub fn generate_all(resources: &Resources, output_dir: &Path, per_instance: bool) -> Result<()> {
     let mut instances_tf    = String::new();
     let mut sg_tf           = String::new();
     let mut vpc_tf          = String::new();
@@ -34,6 +35,18 @@ pub fn generate_all(resources: &Resources, output_dir: &Path) -> Result<()> {
     write_if("security_groups.tf",  output_dir, &sg_tf)?;
     write_if("vpc.tf",              output_dir, &vpc_tf)?;
     write_if("iam_roles.tf",        output_dir, &iam_tf)?;
+
+    if per_instance {
+        let instances_dir = output_dir.join("instances");
+        std::fs::create_dir_all(&instances_dir)?;
+        for inst in &resources.instances {
+            let name = tf_unique_name(&inst.name, &inst.id);
+            let filename = format!("{}.tf", name);
+            let mut content = String::new();
+            ec2::generate_one(inst, &mut content)?;
+            write_if(&filename, &instances_dir, &content)?;
+        }
+    }
 
     Ok(())
 }
