@@ -12,7 +12,6 @@ pub fn generate(resources: &Resources, output_dir: &Path) -> Result<()> {
     generate_security_groups(&mut script, resources);
     generate_vpc_subnets(&mut script, resources);
     generate_iam(&mut script, resources);
-    generate_ec2_instances(&mut script, resources);
 
     let path = output_dir.join("import.sh");
     fs::write(&path, &script)?;
