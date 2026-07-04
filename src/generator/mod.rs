@@ -97,7 +97,23 @@ pub fn tf_unique_name(readable: &str, resource_id: &str) -> String {
     }
 }
 
-/// Build a unique Terraform name for a security group rule.
+/// Quote a tag key if it contains characters invalid in HCL identifiers.
+/// Keys with `:`, `-`, `.`, `/`, spaces, or starting with a digit need quoting.
+pub fn quote_tag_key(key: &str) -> String {
+    let needs_quoting = key.is_empty()
+        || key.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false)
+        || key.contains(':')
+        || key.contains('-')
+        || key.contains('.')
+        || key.contains('/')
+        || key.contains(' ')
+        || key.contains('@');
+    if needs_quoting {
+        format!("\"{}\"", key)
+    } else {
+        key.to_string()
+    }
+}
 /// Format: {sg_name}_{direction}_{protocol}_{from_port}
 /// Example: "web_sg_sg0abc123_ingress_tcp_80"
 pub fn tf_rule_name(sg_name: &str, direction: &str, protocol: &str, from_port: i32) -> String {

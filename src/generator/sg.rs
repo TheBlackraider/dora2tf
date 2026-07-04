@@ -16,7 +16,7 @@ pub fn generate(sgs: &[SecurityGroup], output: &mut String) -> Result<()> {
         writeln!(output, "    ManagedBy = \"dora2tf\"")?;
         for (k, v) in &sg.tags {
             if k != "Name" && !v.is_empty() {
-                writeln!(output, "    {} = \"{}\"", k, v)?;
+                writeln!(output, "    {} = \"{}\"", super::quote_tag_key(k), v)?;
             }
         }
         writeln!(output, "  }}")?;

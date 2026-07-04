@@ -40,7 +40,7 @@ pub fn generate(instances: &[Ec2Instance], output: &mut String) -> Result<()> {
         writeln!(output, "    ManagedBy   = \"dora2tf\"")?;
         for (k, v) in &inst.tags {
             if k != "Name" && !v.is_empty() {
-                writeln!(output, "    {} = \"{}\"", k, v)?;
+                writeln!(output, "    {} = \"{}\"", super::quote_tag_key(k), v)?;
             }
         }
         writeln!(output, "  }}")?;
