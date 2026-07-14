@@ -12,6 +12,7 @@ pub fn generate(resources: &Resources, output_dir: &Path) -> Result<()> {
     generate_security_groups(&mut script, resources);
     generate_vpc_subnets(&mut script, resources);
     generate_iam(&mut script, resources);
+    generate_ec2_instances(&mut script, resources);
 
     let path = output_dir.join("import.sh");
     fs::write(&path, &script)?;
@@ -83,5 +84,68 @@ fn generate_ec2_instances(script: &mut String, resources: &Resources) {
         script.push_str(&format!("terraform import aws_instance.{} {}\n", name, inst.id));
     }
 
+}
+
+/// Generate per-instance import scripts for --per-instance mode.
+/// Each uses original tag names matching the self-contained .tf file.
+pub fn generate_per_instance(
+    resources: &Resources,
+    instances_dir: &Path,
+) -> Result<()> {
+    for inst in &resources.instances {
+        let inst_name = super::tf_name(&inst.name);
+        let mut script = String::from("#!/bin/bash\n");
+        script.push_str(&format!("# Import script for: {} ({})\n", inst.name, inst.id));
+        script.push_str("# Run from: terraform/instances/\n\n");
+
+        // Import SGs used by this instance
+        for sg_id in &inst.security_groups {
+            if let Some(sg) = resources.security_groups.iter().find(|s| &s.id == sg_id) {
+                let sn = super::tf_name(&sg.name);
+                script.push_str(&format!("terraform import aws_security_group.{} {}\n", sn, sg.id));
+                for rule in &sg.ingress {
+                    let rn = format!("{}_ingress_{}_{}", sn, rule.protocol, rule.from_port);
+                    script.push_str(&format!(
+                        "terraform import aws_security_group_rule.{} {}_ingress_{}_{}\n",
+                        rn, sg.id, rule.protocol, rule.from_port
+                    ));
+                }
+            }
+        }
+
+        // Import subnet + VPC
+        if !inst.subnet_id.is_empty() {
+            for vpc in &resources.vpcs {
+                for sub in &vpc.subnets {
+                    if sub.id == inst.subnet_id {
+                        let vn = super::tf_name(&vpc.name);
+                        let sn = super::tf_name(&sub.name);
+                        script.push_str(&format!("terraform import aws_vpc.{} {}\n", vn, vpc.id));
+                        script.push_str(&format!("terraform import aws_subnet.{} {}\n", sn, sub.id));
+                    }
+                }
+            }
+        }
+
+        // Import the instance
+        script.push_str(&format!("terraform import aws_instance.{} {}\n", inst_name, inst.id));
+
+        let filename = format!("{}_import.sh", inst_name);
+        let path = instances_dir.join(filename);
+        fs::write(&path, &script)?;
+        tracing::info!("  Wrote {} ({} bytes)", path.display(), script.len());
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(meta) = fs::metadata(&path) {
+                let mut perms = meta.permissions();
+                perms.set_mode(0o755);
+                let _ = fs::set_permissions(&path, perms);
+            }
+        }
+    }
+
+    Ok(())
 }
 
