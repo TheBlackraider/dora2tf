@@ -87,6 +87,10 @@ async fn main() -> Result<()> {
 
         if cli.import_script {
             generator::imports::generate(&resources, &cli.output)?;
+            if cli.per_instance {
+                let instances_dir = cli.output.join("instances");
+                generator::imports::generate_per_instance(&resources, &instances_dir)?;
+            }
         }
     }
 

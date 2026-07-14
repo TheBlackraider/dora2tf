@@ -40,12 +40,15 @@ pub fn generate_all(resources: &Resources, output_dir: &Path, per_instance: bool
         let instances_dir = output_dir.join("instances");
         std::fs::create_dir_all(&instances_dir)?;
         for inst in &resources.instances {
-            let name = tf_unique_name(&inst.name, &inst.id);
+            let name = tf_name(&inst.name);
             let filename = format!("{}.tf", name);
             let mut content = String::new();
-            // Pass SGs and VPCs so we can generate Terraform references (not raw IDs)
             ec2::generate_one(inst, &resources.security_groups, &resources.vpcs, &mut content)?;
             write_if(&filename, &instances_dir, &content)?;
+        }
+        // Also generate per-instance import scripts
+        if std::env::var("DORA2TF_IMPORT_SCRIPT").is_ok() {
+            // (handled separately in main)
         }
     }
 
