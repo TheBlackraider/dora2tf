@@ -78,13 +78,7 @@ async fn main() -> Result<()> {
     } else {
         std::fs::create_dir_all(&cli.output)?;
         info!("Writing .tf files to {}", cli.output.display());
-        generator::generate_all(&resources, &cli.output)?;
-
-        if cli.import_script {
-            generator::imports::generate(&resources, &cli.output)?;
-            let instances_dir = cli.output.join("instances");
-            generator::imports::generate_per_instance(&resources, &instances_dir)?;
-        }
+        generator::generate_all(&resources, &cli.output, cli.import_script)?;
     }
 
     info!("Done. {} instances, {} SGs, {} VPCs, {} IAM roles",

@@ -4,7 +4,7 @@ use crate::scanner::iam::IamRole;
 
 pub fn generate(roles: &[IamRole], output: &mut String) -> Result<()> {
     for role in roles {
-        let rname = super::tf_unique_name(&role.name, &role.name);
+        let rname = super::tf_name(&role.name);
 
         writeln!(output, "resource \"aws_iam_role\" \"{}\" {{", rname)?;
         writeln!(output, "  name = \"{}\"", role.name)?;
@@ -29,9 +29,8 @@ pub fn generate(roles: &[IamRole], output: &mut String) -> Result<()> {
         }
 
         for pol in &role.inline_policies {
-            let pname = super::tf_unique_name(
+            let pname = super::tf_name(
                 &format!("{}_{}", role.name, pol.name),
-                &pol.name,
             );
             writeln!(output, "resource \"aws_iam_role_policy\" \"{}\" {{", pname)?;
             writeln!(output, "  name   = \"{}\"", pol.name)?;
