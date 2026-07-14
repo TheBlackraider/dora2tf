@@ -18,9 +18,8 @@ pub struct Resources {
     pub roles:           Vec<crate::scanner::iam::IamRole>,
 }
 
-/// Generate all .tf files from scanned resources.
-/// If `per_instance` is true, also creates instances/{name}.tf per EC2 instance.
-pub fn generate_all(resources: &Resources, output_dir: &Path, per_instance: bool) -> Result<()> {
+/// Generate all .tf files: shared (by type) + per-instance in instances/.
+pub fn generate_all(resources: &Resources, output_dir: &Path) -> Result<()> {
     let mut instances_tf    = String::new();
     let mut sg_tf           = String::new();
     let mut vpc_tf          = String::new();
@@ -36,20 +35,15 @@ pub fn generate_all(resources: &Resources, output_dir: &Path, per_instance: bool
     write_if("vpc.tf",              output_dir, &vpc_tf)?;
     write_if("iam_roles.tf",        output_dir, &iam_tf)?;
 
-    if per_instance {
-        let instances_dir = output_dir.join("instances");
-        std::fs::create_dir_all(&instances_dir)?;
-        for inst in &resources.instances {
-            let name = tf_name(&inst.name);
-            let filename = format!("{}.tf", name);
-            let mut content = String::new();
-            ec2::generate_one(inst, &resources.security_groups, &resources.vpcs, &mut content)?;
-            write_if(&filename, &instances_dir, &content)?;
-        }
-        // Also generate per-instance import scripts
-        if std::env::var("DORA2TF_IMPORT_SCRIPT").is_ok() {
-            // (handled separately in main)
-        }
+    // Per-instance files — always generated
+    let instances_dir = output_dir.join("instances");
+    std::fs::create_dir_all(&instances_dir)?;
+    for inst in &resources.instances {
+        let name = tf_name(&inst.name);
+        let filename = format!("{}.tf", name);
+        let mut content = String::new();
+        ec2::generate_one(inst, &resources.security_groups, &resources.vpcs, &mut content)?;
+        write_if(&filename, &instances_dir, &content)?;
     }
 
     Ok(())

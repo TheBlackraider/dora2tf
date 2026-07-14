@@ -33,11 +33,6 @@ struct Cli {
     /// Generate import.sh script alongside .tf files
     #[arg(long)]
     import_script: bool,
-
-    /// Generate one .tf file per EC2 instance (with volumes) in instances/ subdirectory.
-    /// Shared infra (SGs, VPC, IAM) still goes to the standard files.
-    #[arg(long)]
-    per_instance: bool,
 }
 
 #[tokio::main]
@@ -83,14 +78,12 @@ async fn main() -> Result<()> {
     } else {
         std::fs::create_dir_all(&cli.output)?;
         info!("Writing .tf files to {}", cli.output.display());
-        generator::generate_all(&resources, &cli.output, cli.per_instance)?;
+        generator::generate_all(&resources, &cli.output)?;
 
         if cli.import_script {
             generator::imports::generate(&resources, &cli.output)?;
-            if cli.per_instance {
-                let instances_dir = cli.output.join("instances");
-                generator::imports::generate_per_instance(&resources, &instances_dir)?;
-            }
+            let instances_dir = cli.output.join("instances");
+            generator::imports::generate_per_instance(&resources, &instances_dir)?;
         }
     }
 
